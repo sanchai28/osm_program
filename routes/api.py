@@ -1,7 +1,7 @@
 # routes/api.py
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
-from models import Village, Volunteer, Training, VolunteerTraining, TrainingType
+from models import Village, Volunteer, Training, VolunteerTraining
 from sqlalchemy.orm import joinedload
 from datetime import datetime
 

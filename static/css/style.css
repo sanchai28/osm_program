@@ -61,6 +61,24 @@ h1, h2, h3, h4, h5, h6 {
     background-color: rgba(0, 123, 255, 0.075);
 }
 
+table.table-hover tbody tr label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    width: 100%;
+}
+
+table.table-hover tbody tr label input[type="checkbox"] {
+    margin-right: 10px;
+    width: 20px;  /* Adjust the width */
+    height: 20px; /* Adjust the height */
+}
+
+table.table-hover tbody tr label td {
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+}
+
 /* ปุ่ม (Buttons) */
 .btn {
     border-radius: 0.35rem;
@@ -182,4 +200,8 @@ h1, h2, h3, h4, h5, h6 {
     .card-body {
         padding: 1rem;
     }
+}
+
+#loading-spinner {
+    margin-top: 20px;
 }

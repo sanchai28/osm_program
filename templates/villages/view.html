@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}รายละเอียดหมู่บ้าน {{ village.village_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">รายละเอียดหมู่บ้าน {{ village.village_name }}</h1>
+                    <dl class="row">
+                        <dt class="col-sm-3">หมู่ที่</dt>
+                        <dd class="col-sm-9">{{ village.village_number }}</dd>
+
+                        <dt class="col-sm-3">ชื่อหมู่บ้าน</dt>
+                        <dd class="col-sm-9">{{ village.village_name }}</dd>
+                    </dl>
+                    <h2 class="mt-4">อสม. ในหมู่บ้าน</h2>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>เลขประจำตัว อสม.</th>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>สถานะ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for volunteer in volunteers %}
+                                <tr>
+                                    <td>{{ volunteer.volunteer_id }}</td>
+                                    <td>{{ volunteer.title }}{{ volunteer.first_name }} {{ volunteer.last_name }}</td>
+                                    <td>{{ 'ปฏิบัติงาน' if volunteer.status == 'active' else 'ลาออก' }}</td> <!-- Update status display -->
+                                    <td>
+                                        <a href="{{ url_for('volunteers.view_volunteer', id=volunteer.id) }}" class="btn btn-info btn-sm">ดู</a>
+                                        <a href="{{ url_for('volunteers.edit_volunteer', id=volunteer.id) }}" class="btn btn-warning btn-sm">แก้ไข</a>
+                                        <form action="{{ url_for('volunteers.delete_volunteer', id=volunteer.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm btn-delete">ลบ</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('villages.edit_village', id=village.id) }}" class="btn btn-warning">แก้ไข</a>
+                    <form action="{{ url_for('villages.delete_village', id=village.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger">ลบ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

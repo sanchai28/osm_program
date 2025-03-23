@@ -1,7 +1,8 @@
 # forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, IntegerField, FloatField, DateField, PasswordField, BooleanField
+from wtforms import StringField, TextAreaField, SelectField, IntegerField, FloatField, DateField, PasswordField, BooleanField, SubmitField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, EqualTo, ValidationError
+from wtforms.widgets import ListWidget, CheckboxInput  # Add import for ListWidget and CheckboxInput
 import re
 from datetime import datetime
 
@@ -24,6 +25,7 @@ class RegisterForm(FlaskForm):
 class VillageForm(FlaskForm):
     village_number = StringField('หมู่ที่', validators=[DataRequired()])
     village_name = StringField('ชื่อหมู่บ้าน', validators=[DataRequired()])
+    submit = SubmitField('บันทึก')
     
     def validate_village_number(self, field):
         # ตรวจสอบว่าหมู่ที่เป็นตัวเลขหรือไม่
@@ -36,7 +38,6 @@ class VillageSearchForm(FlaskForm):
 
 # ฟอร์มสำหรับ อสม.
 class VolunteerForm(FlaskForm):
-    volunteer_id = StringField('เลขประจำตัว อสม.', validators=[DataRequired()])
     id_card = StringField('เลขบัตรประชาชน', validators=[DataRequired(), Length(min=13, max=13)])
     title_choices = [
         ('นาย', 'นาย'),
@@ -52,10 +53,16 @@ class VolunteerForm(FlaskForm):
     start_date = StringField('วันที่เริ่มเป็น อสม.', validators=[DataRequired()])
     status_choices = [
         ('active', 'ปฏิบัติงาน'),
-        ('inactive', 'พักงาน')
+        ('inactive', 'ลาออก')
     ]
     status = SelectField('สถานะ', choices=status_choices, validators=[DataRequired()])
+    volunteer_type_choices = [
+        ('บัญชี 1', 'บัญชี 1'),
+        ('บัญชี 2', 'บัญชี 2')
+    ]
+    volunteer_type = SelectField('ประเภท อสม.', choices=volunteer_type_choices, validators=[DataRequired()])
     village_id = SelectField('หมู่บ้าน', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('บันทึก')
     
     def validate_id_card(self, field):
         # ตรวจสอบว่าเลขบัตรประชาชนเป็นตัวเลข 13 หลัก
@@ -82,7 +89,7 @@ class VolunteerForm(FlaskForm):
 # ฟอร์มสำหรับการค้นหา อสม.
 class VolunteerSearchForm(FlaskForm):
     name = StringField('ชื่อ-นามสกุล')
-    village_id = SelectField('หมู่บ้าน', coerce=int, validators=[Optional()], choices=[('', 'ทั้งหมด')])
+    village_number = SelectField('หมู่ที่', coerce=lambda x: int(x) if x.isdigit() else None, validators=[Optional()])
     status_choices = [
         ('', 'ทั้งหมด'),
         ('active', 'ปฏิบัติงาน'),
@@ -95,6 +102,7 @@ class TrainingTypeForm(FlaskForm):
     name = StringField('ชื่อหลักสูตร', validators=[DataRequired()])
     description = TextAreaField('รายละเอียด', validators=[Optional()])
     hours = IntegerField('จำนวนชั่วโมง', validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField('บันทึก')
 
 # ฟอร์มสำหรับการอบรม
 class TrainingForm(FlaskForm):
@@ -103,7 +111,8 @@ class TrainingForm(FlaskForm):
     start_date = StringField('วันที่เริ่ม', validators=[DataRequired()])
     end_date = StringField('วันที่สิ้นสุด', validators=[DataRequired()])
     location = StringField('สถานที่', validators=[DataRequired()])
-    training_type_id = SelectField('ประเภทการอบรม', coerce=int, validators=[DataRequired()])
+    training_type_id = SelectField('ประเภทการอบรม', coerce=int, validators=[DataRequired()])  # Ensure this field is included
+    submit = SubmitField('บันทึก')
     
     def validate_start_date(self, field):
         try:
@@ -129,11 +138,11 @@ class TrainingSearchForm(FlaskForm):
 
 # ฟอร์มสำหรับการเพิ่ม อสม. เข้าร่วมการอบรม
 class VolunteerTrainingForm(FlaskForm):
-    volunteer_id = SelectField('อสม.', coerce=int, validators=[DataRequired()])
-    status_choices = [
-        ('completed', 'เสร็จสิ้น'),
-        ('incomplete', 'ยังไม่เสร็จสิ้น')
-    ]
-    status = SelectField('สถานะการอบรม', choices=status_choices, validators=[DataRequired()])
-    score = FloatField('คะแนน', validators=[Optional()])
-    certificate_number = StringField('เลขที่วุฒิบัตร', validators=[Optional()])
+    search = StringField('ค้นหา อสม. โดยเลขบัตรประชาชนหรือชื่อ', validators=[Optional()])  # Add search field
+    village_number = SelectField('กรองตามหมู่ที่', coerce=lambda x: int(x) if x.isdigit() else None, validators=[Optional()])  # Change to SelectField for village number
+    volunteer_ids = SelectMultipleField('อสม.', coerce=int, option_widget=CheckboxInput(), widget=ListWidget(prefix_label=False), validators=[DataRequired()])  # Use SelectMultipleField with checkboxes
+    submit = SubmitField('บันทึก')
+
+    def validate_village_number(form, field):
+        if field.data == '':
+            field.data = None

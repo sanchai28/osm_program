@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}เพิ่มประเภทการอบรม{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title">เพิ่มประเภทการอบรม</h2>
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.hours.label(class="form-label") }}
+                            {{ form.hours(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

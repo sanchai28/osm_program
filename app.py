@@ -4,9 +4,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # โหลดโมเดลของฐานข้อมูล
-from models import db, User, Village, Volunteer, TrainingType, Training, VolunteerTraining
+from models import db, User, Village, Volunteer, Training, VolunteerTraining
 
 # โหลดตัวแปรสภาพแวดล้อม
 load_dotenv()
@@ -53,6 +54,15 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+
+    # Migration script to add training_type_id column if it doesn't exist
+    with db.engine.connect() as conn:
+        conn.execute(text("PRAGMA foreign_keys=off;"))
+        result = conn.execute(text("PRAGMA table_info(training);"))
+        columns = [row[1] for row in result]  # Access columns by index
+        if 'training_type_id' not in columns:
+            conn.execute(text("ALTER TABLE training ADD COLUMN training_type_id INTEGER;"))
+        conn.execute(text("PRAGMA foreign_keys=on;"))
 
 # เพิ่มฟังก์ชัน now() สำหรับใช้ในเทมเพลต
 @app.context_processor

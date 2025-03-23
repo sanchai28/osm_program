@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title">{{ title }}</h2>
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.village_number.label(class="form-label") }}
+                            {{ form.village_number(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.village_name.label(class="form-label") }}
+                            {{ form.village_name(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

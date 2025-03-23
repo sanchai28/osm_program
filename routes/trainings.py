@@ -1,76 +1,13 @@
 # routes/trainings.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from models import db, Training, TrainingType, Volunteer, VolunteerTraining
-from forms import TrainingForm, TrainingTypeForm, TrainingSearchForm, VolunteerTrainingForm
+from models import db, Training, Volunteer, VolunteerTraining, TrainingType, Village  # Add Village import
+from forms import TrainingForm, TrainingSearchForm, VolunteerTrainingForm, TrainingTypeForm  # Add TrainingTypeForm import
 from datetime import datetime
 
 # สร้าง Blueprint สำหรับจัดการการอบรม
 trainings = Blueprint('trainings', __name__, url_prefix='/trainings')
 
-#################################
-# การจัดการประเภทการอบรม
-#################################
-
-# แสดงรายการประเภทการอบรมทั้งหมด
-@trainings.route('/types')
-@login_required
-def list_training_types():
-    training_types = TrainingType.query.all()
-    return render_template('training_types/index.html', training_types=training_types)
-
-# เพิ่มประเภทการอบรมใหม่
-@trainings.route('/types/new', methods=['GET', 'POST'])
-@login_required
-def new_training_type():
-    form = TrainingTypeForm()
-    
-    if form.validate_on_submit():
-        training_type = TrainingType(
-            name=form.name.data,
-            description=form.description.data,
-            hours=form.hours.data
-        )
-        db.session.add(training_type)
-        db.session.commit()
-        flash('เพิ่มประเภทการอบรมสำเร็จ', 'success')
-        return redirect(url_for('trainings.list_training_types'))
-    
-    return render_template('training_types/form.html', form=form, title='เพิ่มประเภทการอบรมใหม่')
-
-# แก้ไขประเภทการอบรม
-@trainings.route('/types/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_training_type(id):
-    training_type = TrainingType.query.get_or_404(id)
-    form = TrainingTypeForm(obj=training_type)
-    
-    if form.validate_on_submit():
-        training_type.name = form.name.data
-        training_type.description = form.description.data
-        training_type.hours = form.hours.data
-        db.session.commit()
-        flash('แก้ไขประเภทการอบรมสำเร็จ', 'success')
-        return redirect(url_for('trainings.list_training_types'))
-    
-    return render_template('training_types/form.html', form=form, title='แก้ไขประเภทการอบรม')
-
-# ลบประเภทการอบรม
-@trainings.route('/types/<int:id>/delete', methods=['POST'])
-@login_required
-def delete_training_type(id):
-    training_type = TrainingType.query.get_or_404(id)
-    
-    # ตรวจสอบว่ามีการอบรมที่ใช้ประเภทนี้หรือไม่
-    existing_trainings = Training.query.filter_by(training_type_id=id).first()
-    if existing_trainings:
-        flash('ไม่สามารถลบประเภทการอบรมได้ เนื่องจากมีการอบรมที่ใช้ประเภทนี้', 'danger')
-        return redirect(url_for('trainings.list_training_types'))
-    
-    db.session.delete(training_type)
-    db.session.commit()
-    flash('ลบประเภทการอบรมสำเร็จ', 'success')
-    return redirect(url_for('trainings.list_training_types'))
 
 #################################
 # การจัดการการอบรม
@@ -92,10 +29,6 @@ def list_trainings():
             search_term = f"%{form.title.data}%"
             query = query.filter(Training.title.like(search_term))
         
-        # ค้นหาตามประเภทการอบรม
-        if form.training_type_id.data:
-            query = query.filter(Training.training_type_id == form.training_type_id.data)
-            
         # ค้นหาตามช่วงวันที่
         if form.start_date.data and form.end_date.data:
             start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d').date()
@@ -104,13 +37,9 @@ def list_trainings():
     
     trainings = query.order_by(Training.start_date.desc()).all()
     
-    # ดึงข้อมูลประเภทการอบรมสำหรับฟอร์มค้นหา
-    training_types = TrainingType.query.all()
-    
     return render_template('trainings/index.html', 
                           trainings=trainings, 
-                          form=form, 
-                          training_types=training_types)
+                          form=form)
 
 # แสดงรายละเอียดการอบรม
 @trainings.route('/<int:id>')
@@ -131,27 +60,31 @@ def view_training(id):
 def new_training():
     form = TrainingForm()
     
-    # ดึงข้อมูลประเภทการอบรมสำหรับ dropdown
-    form.training_type_id.choices = [(t.id, t.name) for t in TrainingType.query.all()]
+    # Set choices for training_type_id
+    form.training_type_id.choices = [(tt.id, tt.name) for tt in TrainingType.query.all()]
     
     if form.validate_on_submit():
-        # แปลงวันที่จากสตริงเป็น Date object
-        start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d').date()
-        end_date = datetime.strptime(form.end_date.data, '%Y-%m-%d').date()
-        
-        training = Training(
-            title=form.title.data,
-            description=form.description.data,
-            start_date=start_date,
-            end_date=end_date,
-            location=form.location.data,
-            training_type_id=form.training_type_id.data
-        )
-        
-        db.session.add(training)
-        db.session.commit()
-        flash('เพิ่มการอบรมสำเร็จ', 'success')
-        return redirect(url_for('trainings.view_training', id=training.id))
+        try:
+            # แปลงวันที่จากสตริงเป็น Date object
+            start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d').date()
+            end_date = datetime.strptime(form.end_date.data, '%Y-%m-%d').date()
+            
+            training = Training(
+                title=form.title.data,
+                description=form.description.data,
+                start_date=start_date,
+                end_date=end_date,
+                location=form.location.data,
+                training_type_id=form.training_type_id.data  # Set training_type_id
+            )
+            
+            db.session.add(training)
+            db.session.commit()  # Ensure the instance is committed before redirecting
+            flash('เพิ่มการอบรมสำเร็จ', 'success')
+            return redirect(url_for('trainings.view_training', id=training.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'เกิดข้อผิดพลาดในการเพิ่มการอบรม: {str(e)}', 'danger')
     
     return render_template('trainings/form.html', form=form, title='เพิ่มการอบรมใหม่')
 
@@ -162,8 +95,8 @@ def edit_training(id):
     training = Training.query.get_or_404(id)
     form = TrainingForm(obj=training)
     
-    # ดึงข้อมูลประเภทการอบรมสำหรับ dropdown
-    form.training_type_id.choices = [(t.id, t.name) for t in TrainingType.query.all()]
+    # Set choices for training_type_id
+    form.training_type_id.choices = [(tt.id, tt.name) for tt in TrainingType.query.all()]
     
     # ตั้งค่าค่าเริ่มต้นสำหรับวันที่
     if request.method == 'GET':
@@ -181,7 +114,7 @@ def edit_training(id):
         training.start_date = start_date
         training.end_date = end_date
         training.location = form.location.data
-        training.training_type_id = form.training_type_id.data
+        training.training_type_id = form.training_type_id.data  # Set training_type_id
         
         db.session.commit()
         flash('แก้ไขข้อมูลการอบรมสำเร็จ', 'success')
@@ -219,30 +152,42 @@ def add_volunteer_to_training(id):
     training = Training.query.get_or_404(id)
     form = VolunteerTrainingForm()
     
-    # ดึงรายการ อสม. ที่ยังไม่ได้เข้าร่วมการอบรมนี้
-    existing_attendees = [a.volunteer_id for a in VolunteerTraining.query.filter_by(training_id=id).all()]
-    available_volunteers = Volunteer.query.filter(Volunteer.id.notin_(existing_attendees)).all()
+    # Set choices for village_number
+    form.village_number.choices = [('', 'ทั้งหมด')] + [(v.village_number, f"หมู่ที่ {v.village_number}") for v in Village.query.distinct(Village.village_number).all()]
     
-    form.volunteer_id.choices = [(v.id, f"{v.title}{v.first_name} {v.last_name}") 
-                               for v in available_volunteers]
+    # ดึงรายการ อสม. ทั้งหมด
+    query = Volunteer.query.join(Village)
+    
+    # ตรวจสอบการค้นหา
+    if form.search.data:
+        search_term = f"%{form.search.data}%"
+        query = query.filter((Volunteer.id_card.like(search_term)) | (Volunteer.first_name.like(search_term)) | (Volunteer.last_name.like(search_term)))
+    
+    # ตรวจสอบการกรองตามหมู่ที่
+    if form.village_number.data:
+        query = query.filter(Village.village_number == form.village_number.data)
+    
+    available_volunteers = query.all()
+    
+    form.volunteer_ids.choices = [(v.id, f"{v.title}{v.first_name} {v.last_name} ({v.village.village_name})") for v in available_volunteers]
     
     if form.validate_on_submit():
-        attendee = VolunteerTraining(
-            volunteer_id=form.volunteer_id.data,
-            training_id=id,
-            status=form.status.data,
-            score=form.score.data,
-            certificate_number=form.certificate_number.data
-        )
+        volunteer_ids = form.volunteer_ids.data
+        for volunteer_id in volunteer_ids:
+            attendee = VolunteerTraining(
+                volunteer_id=volunteer_id,
+                training_id=id
+            )
+            db.session.add(attendee)
         
-        db.session.add(attendee)
         db.session.commit()
         flash('เพิ่มผู้เข้าร่วมการอบรมสำเร็จ', 'success')
         return redirect(url_for('trainings.view_training', id=id))
     
     return render_template('trainings/add_volunteer.html', 
                           form=form, 
-                          training=training)
+                          training=training,
+                          available_volunteers=available_volunteers)
 
 # แก้ไขข้อมูลผู้เข้าร่วมการอบรม
 @trainings.route('/volunteer-trainings/<int:id>/edit', methods=['GET', 'POST'])
@@ -280,3 +225,23 @@ def delete_volunteer_training(id):
     db.session.commit()
     flash('ลบข้อมูลผู้เข้าร่วมการอบรมสำเร็จ', 'success')
     return redirect(url_for('trainings.view_training', id=training_id))
+
+# เพิ่มประเภทการอบรมใหม่
+@trainings.route('/new-training-type', methods=['GET', 'POST'])
+@login_required
+def new_training_type():
+    form = TrainingTypeForm()
+    
+    if form.validate_on_submit():
+        training_type = TrainingType(
+            name=form.name.data,
+            description=form.description.data,
+            hours=form.hours.data
+        )
+        
+        db.session.add(training_type)
+        db.session.commit()
+        flash('เพิ่มประเภทการอบรมสำเร็จ', 'success')
+        return redirect(url_for('trainings.list_trainings'))
+    
+    return render_template('trainings/add_training_type.html', form=form, title='เพิ่มประเภทการอบรม')

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}รายละเอียด อสม. {{ volunteer.first_name }} {{ volunteer.last_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">รายละเอียด อสม. {{ volunteer.first_name }} {{ volunteer.last_name }}</h1>
+                    <dl class="row">
+                        <dt class="col-sm-3">เลขประจำตัว อสม.</dt>
+                        <dd class="col-sm-9">{{ volunteer.volunteer_id }}</dd>
+
+                        <dt class="col-sm-3">เลขบัตรประชาชน</dt>
+                        <dd class="col-sm-9">{{ volunteer.id_card }}</dd>
+
+                        <dt class="col-sm-3">คำนำหน้า</dt>
+                        <dd class="col-sm-9">{{ volunteer.title }}</dd>
+
+                        <dt class="col-sm-3">ชื่อ</dt>
+                        <dd class="col-sm-9">{{ volunteer.first_name }}</dd>
+
+                        <dt class="col-sm-3">นามสกุล</dt>
+                        <dd class="col-sm-9">{{ volunteer.last_name }}</dd>
+
+                        <dt class="col-sm-3">วันเกิด</dt>
+                        <dd class="col-sm-9">{{ volunteer.birth_date }}</dd>
+
+                        <dt class="col-sm-3">ที่อยู่</dt>
+                        <dd class="col-sm-9">{{ volunteer.address }}</dd>
+
+                        <dt class="col-sm-3">เบอร์โทรศัพท์</dt>
+                        <dd class="col-sm-9">{{ volunteer.phone }}</dd>
+
+                        <dt class="col-sm-3">วันที่เริ่มเป็น อสม.</dt>
+                        <dd class="col-sm-9">{{ volunteer.start_date }}</dd>
+
+                        <dt class="col-sm-3">สถานะ</dt>
+                        <dd class="col-sm-9">{{ 'ปฏิบัติงาน' if volunteer.status == 'active' else 'ลาออก' }}</dd>
+
+                        <dt class="col-sm-3">ประเภท อสม.</dt>
+                        <dd class="col-sm-9">{{ volunteer.volunteer_type }}</dd>
+
+                        <dt class="col-sm-3">หมู่บ้าน</dt>
+                        <dd class="col-sm-9">{{ village.village_name }}</dd>
+                    </dl>
+                    <h2 class="mt-4">ประวัติการอบรม</h2>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>หัวข้อการอบรม</th>
+                                    <th>วันที่เริ่ม</th>
+                                    <th>วันที่สิ้นสุด</th>
+                                    <th>สถานะ</th>
+                                    <th>คะแนน</th>
+                                    <th>เลขที่วุฒิบัตร</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in training_records %}
+                                <tr>
+                                    <td>{{ record.training.title }}</td>
+                                    <td>{{ record.training.start_date }}</td>
+                                    <td>{{ record.training.end_date }}</td>
+                                    <td>{{ record.volunteer_training.status }}</td>
+                                    <td>{{ record.volunteer_training.score }}</td>
+                                    <td>{{ record.volunteer_training.certificate_number }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('volunteers.edit_volunteer', id=volunteer.id) }}" class="btn btn-warning">แก้ไข</a>
+                    <form action="{{ url_for('volunteers.delete_volunteer', id=volunteer.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger">ลบ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

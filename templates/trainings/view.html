@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}รายละเอียดการอบรม {{ training.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">รายละเอียดการอบรม {{ training.title }}</h1>
+                    <dl class="row">
+                        <dt class="col-sm-3">หัวข้อการอบรม</dt>
+                        <dd class="col-sm-9">{{ training.title }}</dd>
+
+                        <dt class="col-sm-3">รายละเอียด</dt>
+                        <dd class="col-sm-9">{{ training.description }}</dd>
+
+                        <dt class="col-sm-3">วันที่เริ่ม</dt>
+                        <dd class="col-sm-9">{{ training.start_date }}</dd>
+
+                        <dt class="col-sm-3">วันที่สิ้นสุด</dt>
+                        <dd class="col-sm-9">{{ training.end_date }}</dd>
+
+                        <dt class="col-sm-3">สถานที่</dt>
+                        <dd class="col-sm-9">{{ training.location }}</dd>
+                    </dl>
+                    <h2 class="mt-4">ผู้เข้าร่วมการอบรม</h2>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>สถานะ</th>
+                                    <th>คะแนน</th>
+                                    <th>เลขที่วุฒิบัตร</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendee in attendees %}
+                                <tr>
+                                    <td>{{ attendee.volunteer.title }}{{ attendee.volunteer.first_name }} {{ attendee.volunteer.last_name }}</td>
+                                    <td>{{ attendee.status }}</td>
+                                    <td>{{ attendee.score }}</td>
+                                    <td>{{ attendee.certificate_number }}</td>
+                                    <td>
+                                        <a href="{{ url_for('trainings.edit_volunteer_training', id=attendee.id) }}" class="btn btn-warning btn-sm">แก้ไข</a>
+                                        <form action="{{ url_for('trainings.delete_volunteer_training', id=attendee.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm btn-delete">ลบ</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('trainings.add_volunteer_to_training', id=training.id) }}" class="btn btn-primary">เพิ่มผู้เข้าร่วมการอบรม</a>
+                    <a href="{{ url_for('trainings.edit_training', id=training.id) }}" class="btn btn-warning">แก้ไข</a>
+                    <form action="{{ url_for('trainings.delete_training', id=training.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger">ลบ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

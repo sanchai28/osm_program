@@ -18,7 +18,7 @@ class Village(db.Model):
 # โมเดลสำหรับทะเบียน อสม.
 class Volunteer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    volunteer_id = db.Column(db.String(13), unique=True, nullable=False)  # เลขประจำตัว อสม.
+    volunteer_id = db.Column(db.String(13), unique=True, nullable=False)  # เลขประจำตัว อสม. (same as id_card)
     id_card = db.Column(db.String(13), unique=True, nullable=False)  # เลขบัตรประชาชน
     title = db.Column(db.String(20), nullable=False)  # คำนำหน้า
     first_name = db.Column(db.String(100), nullable=False)  # ชื่อ
@@ -28,6 +28,7 @@ class Volunteer(db.Model):
     phone = db.Column(db.String(10), nullable=False)  # เบอร์โทรศัพท์
     start_date = db.Column(db.Date, nullable=False)  # วันที่เริ่มเป็น อสม.
     status = db.Column(db.String(20), nullable=False, default='active')  # สถานะ (active/inactive)
+    volunteer_type = db.Column(db.String(20), nullable=False)  # ประเภท อสม.
     
     # Foreign Key เชื่อมกับหมู่บ้าน
     village_id = db.Column(db.Integer, db.ForeignKey('village.id'), nullable=False)
@@ -35,13 +36,17 @@ class Volunteer(db.Model):
     # ความสัมพันธ์กับการอบรม
     trainings = db.relationship('VolunteerTraining', backref='volunteer', lazy=True)
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.volunteer_id = self.id_card  # Set volunteer_id to id_card
+    
     def __repr__(self):
         return f"{self.title}{self.first_name} {self.last_name}"
 
 # โมเดลสำหรับประเภทการอบรม
 class TrainingType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)  # ชื่อหลักสูตร
+    name = db.Column(db.String(100), nullable=False)  # ชื่อหลักสูตร
     description = db.Column(db.Text, nullable=True)  # รายละเอียด
     hours = db.Column(db.Integer, nullable=False)  # จำนวนชั่วโมง
     
@@ -53,7 +58,7 @@ class TrainingType(db.Model):
 
 # โมเดลสำหรับการอบรม
 class Training(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Ensure autoincrement is set
     title = db.Column(db.String(200), nullable=False)  # หัวข้อการอบรม
     description = db.Column(db.Text, nullable=True)  # รายละเอียด
     start_date = db.Column(db.Date, nullable=False)  # วันที่เริ่ม
@@ -62,7 +67,7 @@ class Training(db.Model):
     
     # Foreign Key เชื่อมกับประเภทการอบรม
     training_type_id = db.Column(db.Integer, db.ForeignKey('training_type.id'), nullable=False)
-    
+        
     # ความสัมพันธ์กับ อสม. (Many-to-Many)
     attendees = db.relationship('VolunteerTraining', backref='training', lazy=True)
     

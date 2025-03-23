@@ -1,9 +1,11 @@
 # routes/volunteers.py
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
 from flask_login import login_required, current_user
 from models import db, Volunteer, Village, Training, VolunteerTraining
 from forms import VolunteerForm, VolunteerSearchForm
 from datetime import datetime
+import pandas as pd
+import os
 
 # สร้าง Blueprint สำหรับจัดการ อสม.
 volunteers = Blueprint('volunteers', __name__, url_prefix='/volunteers')
@@ -14,35 +16,28 @@ volunteers = Blueprint('volunteers', __name__, url_prefix='/volunteers')
 def list_volunteers():
     form = VolunteerSearchForm()
     
-    # กำหนด choices สำหรับ village_id dropdown
-    villages = Village.query.all()
-    village_choices = [(0, 'ทั้งหมด')]
-    village_choices.extend([(v.id, f"หมู่ {v.village_number} บ้าน{v.village_name}") for v in villages])
-    form.village_id.choices = village_choices
+    # Set choices for village_number
+    form.village_number.choices = [('', 'ทั้งหมด')] + [(v.village_number, f"หมู่ที่ {v.village_number}") for v in Village.query.distinct(Village.village_number).all()]
     
     # เริ่มต้นด้วยการค้นหาทั้งหมด
-    query = Volunteer.query
+    query = Volunteer.query.join(Village)
     
     # ตรวจสอบการค้นหา
     if form.validate_on_submit():
-        # ค้นหาตามชื่อ-นามสกุล
-        if form.name.data:
-            search_term = f"%{form.name.data}%"
-            query = query.filter(
-                (Volunteer.first_name.like(search_term)) | 
-                (Volunteer.last_name.like(search_term))
-            )
-        
         # ค้นหาตามหมู่บ้าน
-        if form.village_id.data and form.village_id.data != 0:
-            query = query.filter(Volunteer.village_id == form.village_id.data)
-            
-        # ค้นหาตามสถานะ
-        if form.status.data:
-            query = query.filter(Volunteer.status == form.status.data)
+        if form.village_number.data:
+            query = query.filter(Village.village_number == form.village_number.data)
     
     # เรียงลำดับตามหมู่บ้านและชื่อ
     volunteers = query.order_by(Volunteer.village_id, Volunteer.first_name).all()
+    
+    # Group volunteers by village
+    villages = {}
+    for volunteer in volunteers:
+        village = volunteer.village
+        if village not in villages:
+            villages[village] = []
+        villages[village].append(volunteer)
     
     return render_template('volunteers/index.html', 
                           volunteers=volunteers, 
@@ -83,14 +78,9 @@ def new_volunteer():
                               for v in Village.query.all()]
     
     if form.validate_on_submit():
-        # ตรวจสอบว่าเลขประจำตัว อสม. หรือเลขบัตรประชาชนซ้ำหรือไม่
-        existing_by_id = Volunteer.query.filter_by(volunteer_id=form.volunteer_id.data).first()
+        # Check for duplicate id_card
         existing_by_idcard = Volunteer.query.filter_by(id_card=form.id_card.data).first()
         
-        if existing_by_id:
-            flash('เลขประจำตัว อสม. นี้มีอยู่ในระบบแล้ว', 'danger')
-            return render_template('volunteers/form.html', form=form, title='เพิ่ม อสม. ใหม่')
-            
         if existing_by_idcard:
             flash('เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว', 'danger')
             return render_template('volunteers/form.html', form=form, title='เพิ่ม อสม. ใหม่')
@@ -100,8 +90,8 @@ def new_volunteer():
         start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d').date()
         
         volunteer = Volunteer(
-            volunteer_id=form.volunteer_id.data,
             id_card=form.id_card.data,
+            volunteer_id=form.id_card.data,  # Set volunteer_id to id_card
             title=form.title.data,
             first_name=form.first_name.data,
             last_name=form.last_name.data,
@@ -110,6 +100,7 @@ def new_volunteer():
             phone=form.phone.data,
             start_date=start_date,
             status=form.status.data,
+            volunteer_type=form.volunteer_type.data,
             village_id=form.village_id.data
         )
         
@@ -137,21 +128,12 @@ def edit_volunteer(id):
         form.start_date.data = volunteer.start_date.strftime('%Y-%m-%d')
     
     if form.validate_on_submit():
-        # ตรวจสอบว่าเลขประจำตัว อสม. หรือเลขบัตรประชาชนซ้ำหรือไม่ (ยกเว้นของ อสม. คนนี้)
-        existing_by_id = Volunteer.query.filter(
-            Volunteer.volunteer_id == form.volunteer_id.data,
-            Volunteer.id != id
-        ).first()
-        
+        # ตรวจสอบว่าเลขบัตรประชาชนซ้ำหรือไม่ (ยกเว้นของ อสม. คนนี้)
         existing_by_idcard = Volunteer.query.filter(
             Volunteer.id_card == form.id_card.data,
             Volunteer.id != id
         ).first()
         
-        if existing_by_id:
-            flash('เลขประจำตัว อสม. นี้มีอยู่ในระบบแล้ว', 'danger')
-            return render_template('volunteers/form.html', form=form, title='แก้ไขข้อมูล อสม.', volunteer=volunteer)
-            
         if existing_by_idcard:
             flash('เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว', 'danger')
             return render_template('volunteers/form.html', form=form, title='แก้ไขข้อมูล อสม.', volunteer=volunteer)
@@ -161,8 +143,8 @@ def edit_volunteer(id):
         start_date = datetime.strptime(form.start_date.data, '%Y-%m-%d').date()
         
         # อัปเดตข้อมูล
-        volunteer.volunteer_id = form.volunteer_id.data
         volunteer.id_card = form.id_card.data
+        volunteer.volunteer_id = form.id_card.data  # Set volunteer_id to id_card
         volunteer.title = form.title.data
         volunteer.first_name = form.first_name.data
         volunteer.last_name = form.last_name.data
@@ -171,6 +153,7 @@ def edit_volunteer(id):
         volunteer.phone = form.phone.data
         volunteer.start_date = start_date
         volunteer.status = form.status.data
+        volunteer.volunteer_type = form.volunteer_type.data
         volunteer.village_id = form.village_id.data
         
         db.session.commit()
@@ -293,3 +276,85 @@ def search_by_idcard():
             flash(f'ไม่พบ อสม. ที่มีเลขบัตรประชาชน {id_card}', 'warning')
     
     return render_template('volunteers/search_by_idcard.html')
+
+# หน้า index ของ อสม.
+@volunteers.route('/index')
+@login_required
+def index():
+    # ข้อมูลหมู่บ้านและ อสม. ในแต่ละหมู่บ้าน
+    villages = Village.query.options(db.joinedload(Village.volunteers)).all()
+    
+    return render_template('volunteers/index.html', villages=villages)
+
+@volunteers.route('/upload-excel', methods=['POST'])
+@login_required
+def upload_excel():
+    if 'excel_file' not in request.files:
+        flash('ไม่มีไฟล์ที่ถูกเลือก', 'danger')
+        return redirect(url_for('volunteers.list_volunteers'))
+    
+    file = request.files['excel_file']
+    if file.filename == '':
+        flash('ไม่มีไฟล์ที่ถูกเลือก', 'danger')
+        return redirect(url_for('volunteers.list_volunteers'))
+    
+    if file and file.filename.endswith('.xlsx'):
+        try:
+            df = pd.read_excel(file, dtype={'เบอร์โทรศัพท์': str})
+            for index, row in df.iterrows():
+                volunteer = Volunteer.query.filter_by(id_card=row['เลขบัตรประชาชน']).first()
+                
+                # Handle different date formats
+                try:
+                    birth_date = datetime.strptime(row['วันเกิด'], '%Y-%m-%d').date()
+                except ValueError:
+                    birth_date = datetime.strptime(row['วันเกิด'], '%d/%m/%Y').date()
+                
+                try:
+                    start_date = datetime.strptime(row['วันที่เริ่มเป็น อสม.'], '%Y-%m-%d').date()
+                except ValueError:
+                    start_date = datetime.strptime(row['วันที่เริ่มเป็น อสม.'], '%d/%m/%Y').date()
+                
+                if volunteer:
+                    # Update existing volunteer
+                    volunteer.title = row['คำนำหน้า']
+                    volunteer.first_name = row['ชื่อ']
+                    volunteer.last_name = row['นามสกุล']
+                    volunteer.birth_date = birth_date
+                    volunteer.address = row['ที่อยู่']
+                    volunteer.phone = row['เบอร์โทรศัพท์']
+                    volunteer.start_date = start_date
+                    volunteer.status = row['สถานะ']
+                    volunteer.volunteer_type = row['ประเภท อสม.']
+                    volunteer.village_id = Village.query.filter_by(village_number=row['หมู่ที่']).first().id
+                else:
+                    # Insert new volunteer
+                    volunteer = Volunteer(
+                        id_card=row['เลขบัตรประชาชน'],
+                        title=row['คำนำหน้า'],
+                        first_name=row['ชื่อ'],
+                        last_name=row['นามสกุล'],
+                        birth_date=birth_date,
+                        address=row['ที่อยู่'],
+                        phone=row['เบอร์โทรศัพท์'],
+                        start_date=start_date,
+                        status=row['สถานะ'],
+                        volunteer_type=row['ประเภท อสม.'],
+                        village_id=Village.query.filter_by(village_number=row['หมู่ที่']).first().id
+                    )
+                    db.session.add(volunteer)
+            db.session.commit()
+            flash('อัพโหลดข้อมูล อสม. สำเร็จ', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'เกิดข้อผิดพลาดในการอัพโหลดข้อมูล: {str(e)}', 'danger')
+    else:
+        flash('ไฟล์ที่อัพโหลดต้องเป็นไฟล์ Excel (.xlsx)', 'danger')
+    
+    return redirect(url_for('volunteers.list_volunteers'))
+
+@volunteers.route('/download-sample-excel')
+@login_required
+def download_sample_excel():
+    sample_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'sample_volunteers.xlsx')
+    return send_file(sample_file_path, as_attachment=True, download_name='sample_volunteers.xlsx')
