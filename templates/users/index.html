@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการผู้ใช้{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title">จัดการผู้ใช้</h2>
+                    <a href="{{ url_for('users.new_user') }}" class="btn btn-primary mb-3">
+                        <i class="fas fa-plus me-1"></i>เพิ่มผู้ใช้ใหม่
+                    </a>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อผู้ใช้</th>
+                                    <th>อีเมล</th>
+                                    <th>ชื่อ</th>
+                                    <th>นามสกุล</th>
+                                    <th>บทบาท</th>
+                                    <th>หน่วยบริการ</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.first_name }}</td>
+                                    <td>{{ user.last_name }}</td>
+                                    <td>{{ user.role }}</td>
+                                    <td>{{ user.service_unit.name }}</td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('users.edit_user', id=user.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit me-1"></i>แก้ไข
+                                        </a>
+                                        <form action="{{ url_for('users.delete_user', id=user.id) }}" method="POST" class="d-inline">
+                                            {{ form.hidden_tag() }}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?');">
+                                                <i class="fas fa-trash me-1"></i>ลบ
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

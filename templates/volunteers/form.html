@@ -52,8 +52,16 @@
                             {{ form.volunteer_type(class="form-control") }}
                         </div>
                         <div class="mb-3">
+                            {{ form.subdistrict.label(class="form-label") }}
+                            {{ form.subdistrict(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
                             {{ form.village_id.label(class="form-label") }}
                             {{ form.village_id(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.service_unit_id.label(class="form-label") }}
+                            {{ form.service_unit_id(class="form-control") }}
                         </div>
                         <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
                     </form>
@@ -62,4 +70,26 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const subdistrictSelect = document.querySelector('select[name="subdistrict"]');
+    const villageSelect = document.querySelector('select[name="village_id"]');
+
+    subdistrictSelect.addEventListener('change', function() {
+        const subdistrict = this.value;
+        fetch(`/api/villages?subdistrict=${subdistrict}`)
+            .then(response => response.json())
+            .then(data => {
+                villageSelect.innerHTML = '';
+                data.villages.forEach(village => {
+                    const option = document.createElement('option');
+                    option.value = village.id;
+                    option.textContent = `หมู่ ${village.village_number} บ้าน${village.village_name}`;
+                    villageSelect.appendChild(option);
+                });
+            });
+    });
+});
+</script>
 {% endblock %}

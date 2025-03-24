@@ -62,6 +62,11 @@
                             <li><hr class="dropdown-divider"></li>
                            </ul>
                     </li>
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('users.list_users') }}">Users</a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav ms-auto">

@@ -4,6 +4,9 @@ from flask_login import login_required
 from models import Village, Volunteer, Training, VolunteerTraining
 from sqlalchemy.orm import joinedload
 from datetime import datetime
+from models import TrainingType
+
+
 
 # สร้าง Blueprint สำหรับ API
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -16,6 +19,11 @@ api = Blueprint('api', __name__, url_prefix='/api')
 @api.route('/villages', methods=['GET'])
 @login_required
 def get_villages():
+    subdistrict = request.args.get('subdistrict')
+    if subdistrict:
+        villages = Village.query.filter_by(subdistrict=subdistrict).all()
+        village_list = [{'id': v.id, 'village_number': v.village_number, 'village_name': v.village_name} for v in villages]
+        return jsonify({'villages': village_list})
     villages = Village.query.all()
     result = []
     

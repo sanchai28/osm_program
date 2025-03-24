@@ -1,7 +1,7 @@
 # routes/villages.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
 from flask_login import login_required, current_user
-from models import db, Village, Volunteer
+from models import db, Village, Volunteer, ServiceUnit
 from forms import VillageForm
 import pandas as pd
 import os
@@ -13,7 +13,10 @@ villages = Blueprint('villages', __name__, url_prefix='/villages')
 @villages.route('/')
 @login_required
 def list_villages():
-    villages = Village.query.all()
+    if current_user.role == 'admin':
+        villages = Village.query.all()
+    else:
+        villages = Village.query.filter_by(service_unit_id=current_user.service_unit_id).all()
     return render_template('villages/index.html', villages=villages)
 
 # แสดงรายละเอียดหมู่บ้าน
@@ -29,11 +32,14 @@ def view_village(id):
 @login_required
 def new_village():
     form = VillageForm()
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     if form.validate_on_submit():
         village = Village(
             village_number=form.village_number.data,
-            village_name=form.village_name.data
+            village_name=form.village_name.data,
+            subdistrict=form.subdistrict.data,  # Add subdistrict field
+            service_unit_id=form.service_unit_id.data
         )
         db.session.add(village)
         db.session.commit()
@@ -48,10 +54,13 @@ def new_village():
 def edit_village(id):
     village = Village.query.get_or_404(id)
     form = VillageForm(obj=village)
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     if form.validate_on_submit():
         village.village_number = form.village_number.data
         village.village_name = form.village_name.data
+        village.subdistrict = form.subdistrict.data  # Add subdistrict field
+        village.service_unit_id = form.service_unit_id.data
         db.session.commit()
         flash('แก้ไขข้อมูลหมู่บ้านสำเร็จ', 'success')
         return redirect(url_for('villages.view_village', id=village.id))

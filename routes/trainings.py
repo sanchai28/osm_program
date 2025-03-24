@@ -1,7 +1,7 @@
 # routes/trainings.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from models import db, Training, Volunteer, VolunteerTraining, TrainingType, Village  # Add Village import
+from models import db, Training, Volunteer, VolunteerTraining, TrainingType, Village, ServiceUnit  # Add Village and ServiceUnit import
 from forms import TrainingForm, TrainingSearchForm, VolunteerTrainingForm, TrainingTypeForm  # Add TrainingTypeForm import
 from datetime import datetime
 
@@ -20,7 +20,10 @@ def list_trainings():
     form = TrainingSearchForm()
     
     # เริ่มต้นด้วยการค้นหาทั้งหมด
-    query = Training.query
+    if current_user.role == 'admin':
+        query = Training.query
+    else:
+        query = Training.query.filter_by(service_unit_id=current_user.service_unit_id)
     
     # ตรวจสอบการค้นหา
     if form.validate_on_submit():
@@ -62,6 +65,7 @@ def new_training():
     
     # Set choices for training_type_id
     form.training_type_id.choices = [(tt.id, tt.name) for tt in TrainingType.query.all()]
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     if form.validate_on_submit():
         try:
@@ -75,7 +79,9 @@ def new_training():
                 start_date=start_date,
                 end_date=end_date,
                 location=form.location.data,
-                training_type_id=form.training_type_id.data  # Set training_type_id
+                training_type_id=form.training_type_id.data,  # Set training_type_id
+                subdistrict=form.subdistrict.data,  # Add subdistrict field
+                service_unit_id=form.service_unit_id.data  # Set service_unit_id
             )
             
             db.session.add(training)
@@ -97,6 +103,7 @@ def edit_training(id):
     
     # Set choices for training_type_id
     form.training_type_id.choices = [(tt.id, tt.name) for tt in TrainingType.query.all()]
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     # ตั้งค่าค่าเริ่มต้นสำหรับวันที่
     if request.method == 'GET':
@@ -115,6 +122,8 @@ def edit_training(id):
         training.end_date = end_date
         training.location = form.location.data
         training.training_type_id = form.training_type_id.data  # Set training_type_id
+        training.subdistrict = form.subdistrict.data  # Add subdistrict field
+        training.service_unit_id = form.service_unit_id.data  # Set service_unit_id
         
         db.session.commit()
         flash('แก้ไขข้อมูลการอบรมสำเร็จ', 'success')
@@ -176,7 +185,10 @@ def add_volunteer_to_training(id):
         for volunteer_id in volunteer_ids:
             attendee = VolunteerTraining(
                 volunteer_id=volunteer_id,
-                training_id=id
+                training_id=id,
+                status=form.status.data,
+                score=form.score.data,
+                certificate_number=form.certificate_number.data
             )
             db.session.add(attendee)
         

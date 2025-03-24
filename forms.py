@@ -25,6 +25,14 @@ class RegisterForm(FlaskForm):
 class VillageForm(FlaskForm):
     village_number = StringField('หมู่ที่', validators=[DataRequired()])
     village_name = StringField('ชื่อหมู่บ้าน', validators=[DataRequired()])
+    service_unit_id = SelectField('หน่วยบริการ', coerce=int, validators=[DataRequired()])
+    subdistrict = SelectField('ตำบล', choices=[
+        ('ตำบลโคกเจริญ', 'ตำบลโคกเจริญ'),
+        ('ตำบลยางราก', 'ตำบลยางราก'),
+        ('ตำบลหนองมะค่า', 'ตำบลหนองมะค่า'),
+        ('ตำบลวังทอง', 'ตำบลวังทอง'),
+        ('ตำบลโคกแสมสาร', 'ตำบลโคกแสมสาร')
+    ], validators=[DataRequired()])
     submit = SubmitField('บันทึก')
     
     def validate_village_number(self, field):
@@ -61,7 +69,15 @@ class VolunteerForm(FlaskForm):
         ('บัญชี 2', 'บัญชี 2')
     ]
     volunteer_type = SelectField('ประเภท อสม.', choices=volunteer_type_choices, validators=[DataRequired()])
+    subdistrict = SelectField('ตำบล', choices=[
+        ('ตำบลโคกเจริญ', 'ตำบลโคกเจริญ'),
+        ('ตำบลยางราก', 'ตำบลยางราก'),
+        ('ตำบลหนองมะค่า', 'ตำบลหนองมะค่า'),
+        ('ตำบลวังทอง', 'ตำบลวังทอง'),
+        ('ตำบลโคกแสมสาร', 'ตำบลโคกแสมสาร')
+    ], validators=[DataRequired()])
     village_id = SelectField('หมู่บ้าน', coerce=int, validators=[DataRequired()])
+    service_unit_id = SelectField('หน่วยบริการ', coerce=int, validators=[DataRequired()])
     submit = SubmitField('บันทึก')
     
     def validate_id_card(self, field):
@@ -112,6 +128,14 @@ class TrainingForm(FlaskForm):
     end_date = StringField('วันที่สิ้นสุด', validators=[DataRequired()])
     location = StringField('สถานที่', validators=[DataRequired()])
     training_type_id = SelectField('ประเภทการอบรม', coerce=int, validators=[DataRequired()])  # Ensure this field is included
+    subdistrict = SelectField('ตำบล', choices=[
+        ('ตำบลโคกเจริญ', 'ตำบลโคกเจริญ'),
+        ('ตำบลยางราก', 'ตำบลยางราก'),
+        ('ตำบลหนองมะค่า', 'ตำบลหนองมะค่า'),
+        ('ตำบลวังทอง', 'ตำบลวังทอง'),
+        ('ตำบลโคกแสมสาร', 'ตำบลโคกแสมสาร')
+    ], validators=[DataRequired()])
+    service_unit_id = SelectField('หน่วยบริการ', coerce=int, validators=[DataRequired()])
     submit = SubmitField('บันทึก')
     
     def validate_start_date(self, field):
@@ -141,8 +165,24 @@ class VolunteerTrainingForm(FlaskForm):
     search = StringField('ค้นหา อสม. โดยเลขบัตรประชาชนหรือชื่อ', validators=[Optional()])  # Add search field
     village_number = SelectField('กรองตามหมู่ที่', coerce=lambda x: int(x) if x.isdigit() else None, validators=[Optional()])  # Change to SelectField for village number
     volunteer_ids = SelectMultipleField('อสม.', coerce=int, option_widget=CheckboxInput(), widget=ListWidget(prefix_label=False), validators=[DataRequired()])  # Use SelectMultipleField with checkboxes
+    volunteer_id = SelectField('อสม.', coerce=int, validators=[DataRequired()])  # Add volunteer_id field
+    status = SelectField('สถานะการอบรม', choices=[('completed', 'สำเร็จ'), ('incomplete', 'ไม่สำเร็จ')], validators=[DataRequired()])  # Add status field
+    score = FloatField('คะแนน', validators=[Optional()])  # Add score field
+    certificate_number = StringField('เลขที่วุฒิบัตร', validators=[Optional()])  # Add certificate_number field
     submit = SubmitField('บันทึก')
 
     def validate_village_number(form, field):
         if field.data == '':
             field.data = None
+
+# ฟอร์มสำหรับผู้ใช้
+class UserForm(FlaskForm):
+    username = StringField('ชื่อผู้ใช้', validators=[DataRequired(), Length(min=4, max=50)])
+    password = PasswordField('รหัสผ่าน', validators=[Optional(), Length(min=6)])
+    confirm_password = PasswordField('ยืนยันรหัสผ่าน', validators=[Optional(), EqualTo('password')])
+    email = StringField('อีเมล', validators=[DataRequired(), Email()])
+    first_name = StringField('ชื่อ', validators=[DataRequired()])
+    last_name = StringField('นามสกุล', validators=[DataRequired()])
+    role = SelectField('บทบาท', choices=[('admin', 'ผู้ดูแลระบบ'), ('user', 'ผู้ใช้ทั่วไป')], validators=[DataRequired()])
+    service_unit_id = SelectField('หน่วยบริการ', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('บันทึก')

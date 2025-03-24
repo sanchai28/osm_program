@@ -21,6 +21,8 @@
                                 <tr>
                                     <th>หมู่ที่</th>
                                     <th>ชื่อหมู่บ้าน</th>
+                                    <th>ตำบล</th>
+                                    <th>หน่วยบริการ</th>
                                     <th>การดำเนินการ</th>
                                 </tr>
                             </thead>
@@ -29,6 +31,8 @@
                                 <tr>
                                     <td>{{ village.village_number }}</td>
                                     <td>{{ village.village_name }}</td>
+                                    <td>{{ village.subdistrict }}</td>
+                                    <td>{{ village.service_unit.name }}</td>
                                     <td>
                                         <a href="{{ url_for('villages.view_village', id=village.id) }}" class="btn btn-info btn-sm">ดู</a>
                                         <a href="{{ url_for('villages.edit_village', id=village.id) }}" class="btn btn-warning btn-sm">แก้ไข</a>

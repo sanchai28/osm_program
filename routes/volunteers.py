@@ -1,7 +1,7 @@
 # routes/volunteers.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
 from flask_login import login_required, current_user
-from models import db, Volunteer, Village, Training, VolunteerTraining
+from models import db, Volunteer, Village, Training, VolunteerTraining, ServiceUnit
 from forms import VolunteerForm, VolunteerSearchForm
 from datetime import datetime
 import pandas as pd
@@ -20,7 +20,10 @@ def list_volunteers():
     form.village_number.choices = [('', 'ทั้งหมด')] + [(v.village_number, f"หมู่ที่ {v.village_number}") for v in Village.query.distinct(Village.village_number).all()]
     
     # เริ่มต้นด้วยการค้นหาทั้งหมด
-    query = Volunteer.query.join(Village)
+    if current_user.role == 'admin':
+        query = Volunteer.query.join(Village)
+    else:
+        query = Volunteer.query.join(Village).filter(Volunteer.service_unit_id == current_user.service_unit_id)
     
     # ตรวจสอบการค้นหา
     if form.validate_on_submit():
@@ -72,10 +75,11 @@ def view_volunteer(id):
 @login_required
 def new_volunteer():
     form = VolunteerForm()
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     # ดึงข้อมูลหมู่บ้านสำหรับ dropdown
     form.village_id.choices = [(v.id, f"หมู่ {v.village_number} บ้าน{v.village_name}") 
-                              for v in Village.query.all()]
+                              for v in Village.query.filter_by(subdistrict=form.subdistrict.data).all()]
     
     if form.validate_on_submit():
         # Check for duplicate id_card
@@ -101,7 +105,9 @@ def new_volunteer():
             start_date=start_date,
             status=form.status.data,
             volunteer_type=form.volunteer_type.data,
-            village_id=form.village_id.data
+            village_id=form.village_id.data,
+            subdistrict=form.subdistrict.data,  # Add subdistrict field
+            service_unit_id=form.service_unit_id.data
         )
         
         db.session.add(volunteer)
@@ -117,10 +123,11 @@ def new_volunteer():
 def edit_volunteer(id):
     volunteer = Volunteer.query.get_or_404(id)
     form = VolunteerForm(obj=volunteer)
+    form.service_unit_id.choices = [(su.id, su.name) for su in ServiceUnit.query.all()]
     
     # ตั้งค่าตัวเลือกสำหรับหมู่บ้าน
     form.village_id.choices = [(v.id, f"หมู่ {v.village_number} บ้าน{v.village_name}") 
-                              for v in Village.query.all()]
+                              for v in Village.query.filter_by(subdistrict=form.subdistrict.data).all()]
     
     # ตั้งค่าค่าเริ่มต้นสำหรับวันที่
     if request.method == 'GET':
@@ -155,6 +162,8 @@ def edit_volunteer(id):
         volunteer.status = form.status.data
         volunteer.volunteer_type = form.volunteer_type.data
         volunteer.village_id = form.village_id.data
+        volunteer.subdistrict = form.subdistrict.data  # Add subdistrict field
+        volunteer.service_unit_id = form.service_unit_id.data
         
         db.session.commit()
         flash('แก้ไขข้อมูล อสม. สำเร็จ', 'success')

@@ -38,13 +38,14 @@
                                     <th>ชื่อ-นามสกุล</th>
                                     <th>เบอร์โทรศัพท์</th>
                                     <th>สถานะ</th>
+                                    <th>ตำบล</th>
                                     <th>การดำเนินการ</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for village, volunteers in villages.items() %}
                                 <tr>
-                                    <td colspan="7" class="table-secondary">
+                                    <td colspan="8" class="table-secondary">
                                         <strong>หมู่ {{ village.village_number }} บ้าน{{ village.village_name }}</strong>
                                     </td>
                                 </tr>
@@ -55,7 +56,8 @@
                                     <td>{{ volunteer.volunteer_id }}</td>
                                     <td>{{ volunteer.title }}{{ volunteer.first_name }} {{ volunteer.last_name }}</td>
                                     <td>{{ volunteer.phone }}</td>
-                                    <td>{{ 'ปฏิบัติงาน' if volunteer.status == 'active' else 'ลาออก' }}</td> <!-- Update status display -->
+                                    <td>{{ 'ปฏิบัติงาน' if volunteer.status == 'active' else 'ลาออก' }}</td>
+                                    <td>{{ volunteer.subdistrict }}</td>
                                     <td>
                                         <a href="{{ url_for('volunteers.view_volunteer', id=volunteer.id) }}" class="btn btn-info btn-sm">ดู</a>
                                         <a href="{{ url_for('volunteers.edit_volunteer', id=volunteer.id) }}" class="btn btn-warning btn-sm">แก้ไข</a>
